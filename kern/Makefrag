@@ -1,0 +1,133 @@
+#
+# Makefile fragment for the kernel.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler
+#
+
+OBJDIRS += kern
+
+# entry.S must be first, so that it's the first code in the text segment!!!
+#
+# We also snatch the use of a few handy source files
+# from the lib directory, to avoid gratuitous code duplication.
+KERN_SRCFILES :=	kern/entry.S \
+			kern/init.c \
+			kern/cons.c \
+			kern/debug.c \
+			kern/mem.c \
+			kern/cpu.c \
+			kern/trap.c \
+			kern/trapasm.S \
+			kern/mp.c \
+			kern/spinlock.c \
+			kern/proc.c \
+			kern/syscall.c \
+			kern/pmap.c \
+			kern/file.c \
+			kern/net.c \
+			dev/video.c \
+			dev/kbd.c \
+			dev/serial.c \
+			dev/pic.c \
+			dev/nvram.c \
+			dev/lapic.c \
+			dev/ioapic.c \
+			dev/pci.c \
+			dev/e100.c \
+			lib/printfmt.c \
+			lib/cprintf.c \
+			lib/sprintf.c \
+			lib/string.c
+
+# Build files only if they exist.
+KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
+
+
+
+# Binary program images to embed within the kernel.
+
+# Kernel object files generated from C (.c) and assembly (.S) source files
+KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
+KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
+
+# The kernel needs to link in a few source files from the PIOS C library,
+# but we want to build a special "kernel version" of those source files
+# so they can conditionally compile based on the PIOS_KERNEL cpp symbol.
+# Therefore, compile the kernel versions of library sources into obj/kern.
+KERN_OBJFILES := $(patsubst $(OBJDIR)/lib/%, $(OBJDIR)/kern/%, $(KERN_OBJFILES))
+
+# All binary files to be linked into the kernel will come from the objdir.
+KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
+
+# Rules describing how to build kernel object files
+$(OBJDIR)/kern/%.o: kern/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/kern/%.o: kern/%.S
+	@echo + as $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/dev/%.o: dev/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+# Compile kernel versions of C library sources into the obj/kern directory
+# (see the note above about KERN_OBJFILES).
+$(OBJDIR)/kern/%.o: lib/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+# How to link the kernel itself from its object and binary files.
+$(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
+	@echo + ld $@
+	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_LDLIBS) \
+		-b binary $(KERN_BINFILES)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+# How to build the kernel disk image
+$(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
+	@echo + mk $@
+	$(V)dd if=/dev/zero of=$(OBJDIR)/kern/kernel.img~ count=10000 2>/dev/null
+	$(V)dd if=$(OBJDIR)/boot/bootblock of=$(OBJDIR)/kern/kernel.img~ conv=notrunc 2>/dev/null
+	$(V)dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/kernel.img~ seek=1 conv=notrunc 2>/dev/null
+	$(V)mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
+
+
+all: $(OBJDIR)/kern/kernel.img
+
+grub: $(OBJDIR)/pios-grub
+
+$(OBJDIR)/pios-grub: $(OBJDIR)/kern/kernel
+	@echo + oc $@
+	$(V)$(OBJCOPY) --adjust-vma=0x10000000 $^ $@
+
+# Create VMware disk image to run under VMware, VirtualBox, etc.
+%.vmdk: %.img
+	qemu-img convert -f raw -O vmdk $*.img $*.vmdk
+
+# Run PIOS under VirtualBox
+vbox: $(OBJDIR)/kern/kernel.vmdk vbox-stop
+	@VBoxManage storageattach PIOS --storagectl "IDE Controller" --port 0 \
+		--device 0 --type hdd --medium `/bin/pwd`/obj/kern/kernel.vmdk
+	VBoxManage startvm PIOS
+
+# Stop VirtualBox's PIOS virtual machine
+vbox-stop:
+	@VBoxManage controlvm PIOS poweroff >/dev/null 2>&1 || true
+	@until VBoxManage showvminfo PIOS -machinereadable | \
+		grep -q 'VMState="poweroff"' ; do echo waiting; sleep 1; done
+	@VBoxManage storageattach PIOS --storagectl "IDE Controller" --port 0 \
+		--device 0 --type hdd --medium none >/dev/null 2>&1 || true
+	@VBoxManage closemedium disk `/bin/pwd`/obj/kern/kernel.vmdk \
+		>/dev/null 2>&1 || true

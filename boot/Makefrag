@@ -1,0 +1,42 @@
+#
+# Makefile fragment for the boot loader.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler
+#
+
+OBJDIRS += boot
+
+BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
+
+$(OBJDIR)/boot/%.o: boot/%.c
+	@echo + cc -Os $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -Os -c -o $@ $<
+
+$(OBJDIR)/boot/%.o: boot/%.S
+	@echo + as $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/boot/main.o: boot/main.c
+	@echo + cc -Os $<
+	$(V)$(CC) $(KERN_CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
+
+$(OBJDIR)/boot/bootblock: $(BOOT_OBJS)
+	@echo + ld boot/bootblock
+	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o $@.elf $^
+	$(V)$(OBJDUMP) -S $@.elf >$@.asm
+	$(V)$(OBJCOPY) -S -O binary $@.elf $@
+	$(V)perl boot/sign.pl $(OBJDIR)/boot/bootblock
+
+$(OBJDIR)/boot/bootother: $(OBJDIR)/boot/bootother.o
+	@echo + ld boot/bootother
+	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x1000 -o $@.elf $^
+	$(V)$(OBJDUMP) -S $@.elf >$@.asm
+	$(V)$(OBJCOPY) -S -O binary $@.elf $@
+
