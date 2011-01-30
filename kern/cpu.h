@@ -52,6 +52,18 @@ typedef struct cpu {
 	gcc_noreturn void (*recover)(trapframe *tf, void *recoverdata);
 	void		*recoverdata;
 
+	// Next in list of all CPUs - cpu_boot (below) is the list head.
+	struct cpu	*next;
+
+	// Local APIC ID of this CPU, for inter-processor interrupts etc.
+	uint8_t		id;
+
+	// Flag used in cpu.c to serialize bootstrap of all CPUs
+	volatile uint32_t booted;
+
+	// Process currently running on this CPU.
+	struct proc	*proc;
+
 	// Magic verification tag (CPU_MAGIC) to help detect corruption,
 	// e.g., if the CPU's ring 0 stack overflows down onto the cpu struct.
 	uint32_t	magic;

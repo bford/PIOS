@@ -19,7 +19,13 @@
 #include <kern/mem.h>
 #include <kern/cpu.h>
 #include <kern/trap.h>
+#include <kern/spinlock.h>
+#include <kern/mp.h>
+#include <kern/proc.h>
 
+#include <dev/pic.h>
+#include <dev/lapic.h>
+#include <dev/ioapic.h>
 
 
 // User-mode stack for user(), below, to run on.
@@ -51,10 +57,6 @@ init(void)
 	// Can't call cprintf until after we do this!
 	cons_init();
 
-	// Lab 1: test cprintf and debug_trace
-	cprintf("1234 decimal is %o octal!\n", 1234);
-	debug_check();
-
 	// Initialize and load the bootstrap CPU's GDT, TSS, and IDT.
 	cpu_init();
 	trap_init();
@@ -63,6 +65,21 @@ init(void)
 	// Can't call mem_alloc until after we do this!
 	mem_init();
 
+	// Lab 2: check spinlock implementation
+	if (cpu_onboot())
+		spinlock_check();
+
+	// Find and start other processors in a multiprocessor system
+	mp_init();		// Find info about processors in system
+	pic_init();		// setup the legacy PIC (mainly to disable it)
+	ioapic_init();		// prepare to handle external device interrupts
+	lapic_init();		// setup this CPU's local APIC
+	cpu_bootothers();	// Get other processors started
+//	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
+//		cpu_onboot() ? "BP" : "AP");
+
+	// Initialize the process management code.
+	proc_init();
 
 	// Lab 1: change this so it enters user() in user mode,
 	// running on the user_stack declared above,
@@ -80,8 +97,8 @@ user()
 	assert(read_esp() > (uint32_t) &user_stack[0]);
 	assert(read_esp() < (uint32_t) &user_stack[sizeof(user_stack)]);
 
-	// Check that we're in user mode and can handle traps from there.
-	trap_check_user();
+	// Check the system call and process scheduling code.
+	proc_check();
 
 	done();
 }

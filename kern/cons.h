@@ -26,6 +26,7 @@
 struct iocons;
 
 
+extern struct spinlock cons_lock;
 
 void cons_init(void);
 

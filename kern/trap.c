@@ -16,6 +16,10 @@
 #include <kern/trap.h>
 #include <kern/cons.h>
 #include <kern/init.h>
+#include <kern/proc.h>
+#include <kern/syscall.h>
+
+#include <dev/lapic.h>
 
 
 // Interrupt descriptor table.  Must be built at run time because
@@ -80,6 +84,10 @@ const char *trap_name(int trapno)
 
 	if (trapno < sizeof(excnames)/sizeof(excnames[0]))
 		return excnames[trapno];
+	if (trapno == T_SYSCALL)
+		return "System call";
+	if (trapno >= T_IRQ0 && trapno < T_IRQ0 + 16)
+		return "Hardware Interrupt";
 	return "(unknown trap)";
 }
 
@@ -124,6 +132,12 @@ trap(trapframe *tf)
 	if (c->recover)
 		c->recover(tf, c->recoverdata);
 
+	// Lab 2: your trap handling code here!
+
+	// If we panic while holding the console lock,
+	// release it so we don't get into a recursive panic that way.
+	if (spinlock_holding(&cons_lock))
+		spinlock_release(&cons_lock);
 	trap_print(tf);
 	panic("unhandled trap");
 }

@@ -50,6 +50,7 @@ KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
 
 # Binary program images to embed within the kernel.
+KERN_BINFILES +=	boot/bootother
 
 # Kernel object files generated from C (.c) and assembly (.S) source files
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))

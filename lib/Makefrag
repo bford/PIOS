@@ -1,0 +1,52 @@
+#
+# Makefile fragment for the PIOS runtime support library.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler, Cliff Frey
+#
+
+OBJDIRS += lib
+
+# Source files comprising the minimal PIOS C library.
+LIB_SRCFILES :=		lib/debug.c \
+			lib/cputs.c \
+			lib/cprintf.c \
+			lib/printfmt.c \
+			lib/string.c \
+			lib/file.c \
+			lib/dir.c \
+			lib/stdio.c \
+			lib/stdlib.c \
+			lib/unistd.c \
+			lib/fork.c \
+			lib/exec.c \
+			lib/sprintf.c \
+			lib/fprintf.c \
+			lib/strerror.c \
+			lib/readline.c \
+			lib/thread.c
+
+# Build files only if they exist.
+LIB_SRCFILES := $(wildcard $(LIB_SRCFILES))
+
+LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
+LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
+
+$(OBJDIR)/lib/%.o: lib/%.c
+	@echo + cc[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/%.S
+	@echo + as[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
+	@echo + ar $@
+	$(V)$(AR) r $@ $(LIB_OBJFILES)
+

@@ -16,6 +16,7 @@
 #include <kern/cons.h>
 #include <kern/debug.h>
 #include <kern/init.h>
+#include <kern/spinlock.h>
 
 
 // Variable panicstr contains argument to first call to panic; used as flag

@@ -17,10 +17,12 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/syscall.h>
 
 #include <kern/cpu.h>
 #include <kern/cons.h>
 #include <kern/mem.h>
+#include <kern/spinlock.h>
 
 #include <dev/video.h>
 #include <dev/kbd.h>
@@ -29,6 +31,7 @@
 void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
 
+spinlock cons_lock;	// Spinlock to make console output atomic
 
 /***** General device-independent console code *****/
 // Here we manage the console input buffer,
@@ -51,6 +54,7 @@ cons_intr(int (*proc)(void))
 {
 	int c;
 
+	spinlock_acquire(&cons_lock);
 	while ((c = (*proc)()) != -1) {
 		if (c == 0)
 			continue;
@@ -58,6 +62,8 @@ cons_intr(int (*proc)(void))
 		if (cons.wpos == CONSBUFSIZE)
 			cons.wpos = 0;
 	}
+	spinlock_release(&cons_lock);
+
 }
 
 // return the next input character from the console, or 0 if none waiting
@@ -97,6 +103,7 @@ cons_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
+	spinlock_init(&cons_lock);
 	video_init();
 	kbd_init();
 	serial_init();
@@ -110,9 +117,22 @@ cons_init(void)
 void
 cputs(const char *str)
 {
+	if (read_cs() & 3)
+		return sys_cputs(str);	// use syscall from user mode
+
+	// Hold the console spinlock while printing the entire string,
+	// so that the output of different cputs calls won't get mixed.
+	// Implement ad hoc recursive locking for debugging convenience.
+	bool already = spinlock_holding(&cons_lock);
+	if (!already)
+		spinlock_acquire(&cons_lock);
+
 	char ch;
 	while (*str)
 		cons_putc(*str++);
+
+	if (!already)
+		spinlock_release(&cons_lock);
 }
 
 
