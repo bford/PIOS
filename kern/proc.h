@@ -17,6 +17,7 @@
 #include <inc/syscall.h>
 
 #include <kern/spinlock.h>
+#include <kern/pmap.h>
 #define PROC_CHILDREN	256	// Max # of children a process can have
 
 typedef enum proc_state {
@@ -45,6 +46,10 @@ typedef struct proc {
 
 	// Save area for user-visible state when process is not running.
 	procstate	sv;
+
+	// Virtual memory state for this process.
+	pde_t		*pdir;		// Working page directory
+	pde_t		*rpdir;		// Reference page directory
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)

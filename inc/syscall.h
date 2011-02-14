@@ -24,6 +24,18 @@
 
 #define SYS_REGS	0x00001000	// Get/put register state
 #define SYS_FPU		0x00002000	// Get/put FPU state (with SYS_REGS)
+#define SYS_MEM		0x00004000	// Get/put memory mappings
+
+#define SYS_MEMOP	0x00030000	// Get/put memory operation
+#define SYS_ZERO	0x00010000	// Get/put fresh zero-filled memory
+#define SYS_COPY	0x00020000	// Get/put virtual copy
+#define SYS_MERGE	0x00030000	// Get: diffs only from last snapshot
+#define SYS_SNAP	0x00040000	// Put: snapshot child state
+
+#define SYS_PERM	0x00000100	// Set memory permissions on get/put
+#define SYS_READ	0x00000200	// Read permission (NB: in PTE_AVAIL)
+#define SYS_WRITE	0x00000400	// Write permission (NB: in PTE_AVAIL)
+#define SYS_RW		0x00000600	// Both read and write permission
 
 
 // Register conventions for CPUTS system call (write to debug console):

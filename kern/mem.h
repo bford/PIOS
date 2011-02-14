@@ -78,6 +78,7 @@ pageinfo *mem_alloc(void);
 // Return a physical page to the free list.
 void mem_free(pageinfo *pi);
 
+extern uint8_t pmap_zero[PAGESIZE];	// for the asserts below
 
 
 // Atomically increment the reference count on a page.
@@ -85,6 +86,7 @@ static gcc_inline void
 mem_incref(pageinfo *pi)
 {
 	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 
 	lockadd(&pi->refcount, 1);
@@ -96,6 +98,7 @@ static gcc_inline void
 mem_decref(pageinfo* pi, void (*freefun)(pageinfo *pi))
 {
 	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 
 	if (lockaddz(&pi->refcount, -1))

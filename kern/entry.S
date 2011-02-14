@@ -8,6 +8,7 @@
  * Adapted for PIOS by Bryan Ford at Yale University.
  */
 
+#include <inc/trap.h>
 
 
 #define MULTIBOOT_PAGE_ALIGN  (1<<0)
@@ -37,8 +38,8 @@ start: _start:
 	# stack backtraces will be terminated properly.
 	movl	$0x0,%ebp			# nuke frame pointer
 
-	# Set the stack pointer
-	movl	$(cpu_boot+4096),%esp
+	# Leave a few words on the stack for the user trap frame
+	movl	$(cpu_boot+4096-SIZEOF_STRUCT_TRAPFRAME),%esp
 
 	# now to C code
 	call	init

@@ -16,6 +16,7 @@
 #include <kern/cpu.h>
 #include <kern/mem.h>
 #include <kern/spinlock.h>
+#include <kern/pmap.h>
 
 #include <dev/nvram.h>
 

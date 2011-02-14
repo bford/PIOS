@@ -12,6 +12,8 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/cdefs.h>
+#include <inc/elf.h>
+#include <inc/vm.h>
 
 #include <kern/init.h>
 #include <kern/cons.h>
@@ -31,10 +33,9 @@
 // User-mode stack for user(), below, to run on.
 static char gcc_aligned(16) user_stack[PAGESIZE];
 
-#define ROOTEXE_START _binary_obj_user_sh_start
-
 // Lab 3: ELF executable containing root process, linked into the kernel
 #ifndef ROOTEXE_START
+#define ROOTEXE_START _binary_obj_user_testvm_start
 #endif
 extern char ROOTEXE_START[];
 
@@ -69,6 +70,9 @@ init(void)
 	if (cpu_onboot())
 		spinlock_check();
 
+	// Initialize the paged virtual memory system.
+	pmap_init();
+
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
@@ -97,8 +101,6 @@ user()
 	assert(read_esp() > (uint32_t) &user_stack[0]);
 	assert(read_esp() < (uint32_t) &user_stack[sizeof(user_stack)]);
 
-	// Check the system call and process scheduling code.
-	proc_check();
 
 	done();
 }

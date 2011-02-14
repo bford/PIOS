@@ -1,0 +1,25 @@
+#
+# Makefile fragment for the PIOS user-level programs.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Eddie Kohler, Silas Boyd-Wickizer
+#
+
+OBJDIRS += user
+
+
+$(OBJDIR)/user/%.o: user/%.c
+	@echo + cc[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
+	@echo + ld $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LDINIT) $@.o $(USER_LDLIBS)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+

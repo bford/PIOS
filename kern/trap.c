@@ -18,6 +18,7 @@
 #include <kern/init.h>
 #include <kern/proc.h>
 #include <kern/syscall.h>
+#include <kern/pmap.h>
 
 #include <dev/lapic.h>
 

@@ -117,95 +117,6 @@ putint(printstate *st, uintmax_t num, int base)
 	putstr(st, buf, p-buf);		// print it with left/right padding
 }
 
-#ifndef PIOS_KERNEL	// the kernel doesn't need or want floating-point
-// Print the integer part of a floating-point number
-static char *
-genfint(printstate *st, char *p, double num)
-{
-	if (num >= 10.0)
-		p = genfint(st, p, num / 10.0);	// recursively print higher digits
-	else if (st->signc >= 0)
-		*p++ = st->signc;		// optional sign before first digit
-	*p++ = '0' + (int)fmod(num, 10.0);	// output this digit
-	return p;
-}
-
-static char *
-genfrac(printstate *st, char *p, double num, int fmtch)
-{
-	*p++ = '.';			// start with the '.'
-	int rdig = st->prec < 0 ? 6 : st->prec;	 // digits to the right of the '.'
-	num -= floor(num);		// get the fractional part only
-	while (rdig-- > 0) {		// output 'rdig' fractional digits
-		num *= 10.0;
-		int dig = (int)num;
-		*p++ = '0' + dig;
-		num -= dig;
-	}
-	if (tolower(fmtch) == 'g')	// %g format removes trailing zeros
-		while (p[-1] == '0')
-			p--;
-	if (p[-1] == '.' && !(st->flags & F_ALT))
-		p--;			// no '.' if nothing after it, unless '#'
-	return p;
-}
-
-// Print a floating-point number in simple '%f' floating-point notation.
-static void
-putfloat(printstate *st, double num, int l10, int fmtch)
-{
-	char buf[MAX(l10,0) + st->prec + 10], *p = buf;	// big enough output buffer
-	p = genfint(st, p, num);			// sign and integer part
-	p = genfrac(st, p, num, fmtch);			// '.' and fractional part
-	putstr(st, buf, p-buf);				// print it with padding
-}
-
-// Print a floating-point number in exponential '%e' notation.
-static void
-putflexp(printstate *st, double num, int l10, int fmtch)
-{
-	num *= pow(10, -l10);			// shift num to correct position
-
-	char buf[st->prec + 20], *p = buf;	// big enough output buffer
-	p = genfint(st, p, num);		// generate sign and integer part
-	p = genfrac(st, p, num, fmtch);		// generate '.' and fractional part
-
-	*p++ = isupper(fmtch) ? 'E' : 'e';	// generate exponent
-	st->signc = '+';
-	if (l10 < 0)
-		l10 = -l10, st->signc = '-';
-	p = genint(st, p, l10 / 10);		// at least 2 digits
-	*p++ = '0' + l10 % 10;
-
-	putstr(st, buf, p-buf);			// print it all with field padding
-}
-
-// Print a floating-point number in general '%g' notation.
-static void
-putflgen(printstate *st, double num, int l10, int fmtch)
-{
-	// The precision in the format string counts significant figures.
-	int sigfigs = (st->prec < 0) ? 6 : (st->prec == 0) ? 1 : st->prec;
-	if (l10 < -4 || l10 >= st->prec) {	// Use exponential notation
-		st->prec = sigfigs-1;
-		putflexp(st, num, l10, fmtch);
-	} else {				// Use simple decimal notation
-		st->prec -= l10 + 1;
-		putfloat(st, num, l10, fmtch);
-	}
-}
-
-// Print a floating point infinity or NaN
-static void
-putfinf(printstate *st, const char *str)
-{
-	char buf[10], *p = buf;
-	if (st->signc >= 0)
-		*p++ = st->signc;		// leading sign
-	strcpy(p, str);
-	putstr(st, buf, -1);
-}
-#endif	// ! PIOS_KERNEL
 
 // Main function to format and print a string.
 void
@@ -331,30 +242,6 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putint(&st, (uintptr_t) va_arg(ap, void *), 16);
 			break;
 
-#ifndef PIOS_KERNEL
-		// floating-point
-		case 'f': case 'F':
-		case 'e': case 'E':	// XXX should be different from %f
-		case 'g': case 'G': {	// XXX should be different from %f
-			int variant = tolower(ch);	// which format variant?
-			double val = va_arg(ap, double);	// number to print
-			if (val < 0) {			// handle the sign
-				val = -val;
-				st.signc = '-';
-			}
-			if (isinf(val))			// handle infinities
-				putfinf(&st, isupper(ch) ? "INF" : "inf");
-			else if (isnan(val))		// handle NANs
-				putfinf(&st, isupper(ch) ? "NAN" : "nan");
-			else if (variant == 'f')	// simple decimal format
-				putfloat(&st, val, floor(log10(val)), ch);
-			else if (variant == 'e')	// exponential format
-				putflexp(&st, val, floor(log10(val)), ch);
-			else if (variant == 'g')	// general/mixed format
-				putflgen(&st, val, floor(log10(val)), ch);
-			break;
-		    }
-#endif	// ! PIOS_KERNEL
 
 		// escaped '%' character
 		case '%':
