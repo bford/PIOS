@@ -32,4 +32,54 @@ void	cputs(const char *str);			// lib/cputs.c or kern/cons.c
 int	cprintf(const char *fmt, ...);		// lib/cprintf.c
 int	vcprintf(const char *fmt, va_list);	// lib/cprintf.c
 
+#ifndef SEEK_SET
+#define SEEK_SET	0	/* seek relative to beginning of file */
+#define SEEK_CUR	1	/* seek relative to current file position */
+#define SEEK_END	2	/* seek relative to end of file */
+#endif
+
+#define EOF		(-1)	/* return value indicating end-of-file */
+
+typedef struct filedesc FILE;
+
+extern FILE *const stdin;
+extern FILE *const stdout;
+extern FILE *const stderr;
+
+// lib/stdio.c
+int	fputc(int c, FILE *fh);
+int	fgetc(FILE *fh);
+#define putchar(c)	fputc(c, stdout)
+#define putc(c,fh)	fputc(c, fh)
+#define getchar()	fgetc(stdin)
+#define getc(fh)	fgetc(fh)
+
+// lib/sprintf.c
+int	sprintf(char *str, const char *fmt, ...);
+int	vsprintf(char *str, const char *fmt, va_list args);
+int	snprintf(char *str, int size, const char *fmt, ...);
+int	vsnprintf(char *str, int size, const char *fmt, va_list args);
+
+// lib/fprintf.c
+int	printf(const char *fmt, ...);
+int	vprintf(const char *fmt, va_list args);
+int	fprintf(FILE *f, const char *fmt, ...);
+int	vfprintf(FILE *f, const char *fmt, va_list args);
+
+// lib/stdio.c
+FILE *	fopen(const char *filename, const char *mode);
+FILE *	freopen(const char *filename, const char *mode, FILE *fh);
+int	fclose(FILE *fh);
+size_t	fread(void *ptr, size_t size, size_t count, FILE *fh);
+size_t	fwrite(const void *ptr, size_t size, size_t count, FILE *fh);
+int	fseek(FILE *fh, off_t offset, int whence);
+long	ftell(FILE *fh);
+int	feof(FILE *fd);
+int	ferror(FILE *fd);
+void	clearerr(FILE *fd);
+int	fflush(FILE *fd);
+
+// lib/readline.c
+char*	readline(const char *prompt);
+
 #endif /* !PIOS_INC_STDIO_H */

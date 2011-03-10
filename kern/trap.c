@@ -21,6 +21,8 @@
 #include <kern/pmap.h>
 
 #include <dev/lapic.h>
+#include <dev/kbd.h>
+#include <dev/serial.h>
 
 
 // Interrupt descriptor table.  Must be built at run time because

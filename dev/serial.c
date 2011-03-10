@@ -17,6 +17,8 @@
 #include <kern/cons.h>
 
 #include <dev/serial.h>
+#include <dev/pic.h>
+#include <dev/ioapic.h>
 
 
 bool serial_exists;
@@ -88,4 +90,13 @@ serial_init(void)
 	(void) inb(COM1+COM_RX);
 }
 
+void
+serial_intenable(void)
+{
+	// Enable serial interrupts
+	if (serial_exists) {
+		pic_enable(IRQ_SERIAL);
+		ioapic_enable(IRQ_SERIAL);
+	}
+}
 

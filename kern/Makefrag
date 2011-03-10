@@ -47,10 +47,18 @@ KERN_SRCFILES :=	kern/entry.S \
 # Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
+# Files in 'user' directory to comprise the kernel's initial file system.
+KERN_INITFILES :=	sh \
+			ls \
+			echo \
+			cat \
+			wc \
+			testfs \
+			testvm
 
 
 # Binary program images to embed within the kernel.
-KERN_BINFILES +=	user/testvm
+KERN_BINFILES +=	$(patsubst %,user/%,$(KERN_INITFILES))
 KERN_BINFILES +=	boot/bootother
 
 # Kernel object files generated from C (.c) and assembly (.S) source files
@@ -105,6 +113,14 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 	$(V)dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/kernel.img~ seek=1 conv=notrunc 2>/dev/null
 	$(V)mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
 
+$(OBJDIR)/kern/initfiles.h: kern/Makefrag $(KERN_FSFILES) $(TOP)/fs
+	echo >$@ "$(subst /,_,$(subst .,_,$(subst -,_, \
+			$(patsubst %,INITFILE(%),$(KERN_INITFILES)))))"
+$(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
+
+
+$(TOP)/fs:
+	-mkdir -p $@
 
 all: $(OBJDIR)/kern/kernel.img
 

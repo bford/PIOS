@@ -23,6 +23,7 @@
 #include <kern/cons.h>
 #include <kern/mem.h>
 #include <kern/spinlock.h>
+#include <kern/file.h>
 
 #include <dev/video.h>
 #include <dev/kbd.h>
@@ -64,6 +65,8 @@ cons_intr(int (*proc)(void))
 	}
 	spinlock_release(&cons_lock);
 
+	// Wake the root process
+	file_wakeroot();
 }
 
 // return the next input character from the console, or 0 if none waiting
@@ -112,6 +115,16 @@ cons_init(void)
 		warn("Serial port does not exist!\n");
 }
 
+// Enable console interrupts.
+void
+cons_intenable(void)
+{
+	if (!cpu_onboot())	// only do once, on the boot CPU
+		return;
+
+	kbd_intenable();
+	serial_intenable();
+}
 
 // `High'-level console I/O.  Used by readline and cprintf.
 void
@@ -135,4 +148,13 @@ cputs(const char *str)
 		spinlock_release(&cons_lock);
 }
 
+// Synchronize the root process's console special files
+// with the actual console I/O device.
+bool
+cons_io(void)
+{
+	// Lab 4: your console I/O code here.
+	warn("cons_io() not implemented");
+	return 0;	// 0 indicates no I/O done
+}
 

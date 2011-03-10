@@ -15,6 +15,7 @@
 #include <kern/trap.h>
 #include <kern/proc.h>
 #include <kern/init.h>
+#include <kern/file.h>
 
 
 

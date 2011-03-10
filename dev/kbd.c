@@ -19,6 +19,8 @@
 #include <kern/cons.h>
 
 #include <dev/kbd.h>
+#include <dev/pic.h>
+#include <dev/ioapic.h>
 
 
 #define NO		0
@@ -180,4 +182,14 @@ kbd_init(void)
 {
 }
 
+void
+kbd_intenable(void)
+{
+	// Enable interrupt delivery via the PIC/APIC
+	pic_enable(IRQ_KBD);
+	ioapic_enable(IRQ_KBD);
+
+	// Drain the kbd buffer so that the hardware generates interrupts.
+	kbd_intr();
+}
 

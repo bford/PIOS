@@ -24,6 +24,7 @@
 #include <kern/spinlock.h>
 #include <kern/mp.h>
 #include <kern/proc.h>
+#include <kern/file.h>
 
 #include <dev/pic.h>
 #include <dev/lapic.h>
@@ -35,7 +36,7 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 
 // Lab 3: ELF executable containing root process, linked into the kernel
 #ifndef ROOTEXE_START
-#define ROOTEXE_START _binary_obj_user_testvm_start
+#define ROOTEXE_START _binary_obj_user_testfs_start
 #endif
 extern char ROOTEXE_START[];
 
@@ -81,6 +82,12 @@ init(void)
 	cpu_bootothers();	// Get other processors started
 //	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 //		cpu_onboot() ? "BP" : "AP");
+
+	// Initialize the I/O system.
+	file_init();		// Create root directory and console I/O files
+
+	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
+	//cons_intenable();	// Let the console start producing interrupts
 
 	// Initialize the process management code.
 	proc_init();

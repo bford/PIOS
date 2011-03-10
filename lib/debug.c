@@ -12,7 +12,6 @@
 #include <inc/stdlib.h>
 #include <inc/assert.h>
 #include <inc/ctype.h>
-#include <inc/syscall.h>
 
 char *argv0;
 
@@ -33,9 +32,7 @@ debug_panic(const char *file, int line, const char *fmt,...)
 	vcprintf(fmt, ap);
 	cprintf("\n");
 
-	sys_ret();
-	while(1)
-		;
+	abort();
 }
 
 /* like panic, but don't */
