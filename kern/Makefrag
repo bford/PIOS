@@ -56,6 +56,8 @@ KERN_INITFILES :=	sh \
 			testfs \
 			testvm
 
+KERN_INITFILES +=	testmigr \
+			pwcrack
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES +=	$(patsubst %,user/%,$(KERN_INITFILES))

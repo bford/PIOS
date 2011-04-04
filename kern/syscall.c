@@ -18,6 +18,7 @@
 #include <kern/trap.h>
 #include <kern/proc.h>
 #include <kern/syscall.h>
+#include <kern/net.h>
 
 
 

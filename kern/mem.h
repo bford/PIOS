@@ -46,6 +46,10 @@
 typedef struct pageinfo {
 	struct pageinfo	*free_next;	// Next page number on free list
 	int32_t	refcount;		// Reference count on allocated pages
+	uint32_t home;			// Remote reference to page's home
+	uint32_t shared;		// Other nodes I've given RRs to
+	struct pageinfo *homelist;	// My pages with homes at this physaddr
+	struct pageinfo *homenext;	// Next pointer on homelist
 } pageinfo;
 
 
@@ -80,6 +84,9 @@ void mem_free(pageinfo *pi);
 
 extern uint8_t pmap_zero[PAGESIZE];	// for the asserts below
 
+void mem_rrtrack(uint32_t rr, pageinfo *pi);
+pageinfo *mem_rrlookup(uint32_t rr);
+
 
 // Atomically increment the reference count on a page.
 static gcc_inline void
@@ -102,6 +109,7 @@ mem_decref(pageinfo* pi, void (*freefun)(pageinfo *pi))
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 
 	if (lockaddz(&pi->refcount, -1))
+		if (pi->shared == 0)	// free only if no remote refs
 			freefun(pi);
 	assert(pi->refcount >= 0);
 }

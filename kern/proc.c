@@ -16,6 +16,7 @@
 #include <kern/proc.h>
 #include <kern/init.h>
 #include <kern/file.h>
+#include <kern/net.h>
 
 
 
@@ -50,6 +51,7 @@ proc_alloc(proc *p, uint32_t cn)
 	spinlock_init(&cp->lock);
 	cp->parent = p;
 	cp->state = PROC_STOP;
+	cp->home = RRCONS(net_node, mem_phys(cp), 0);
 
 	// Integer register state
 	cp->sv.tf.ds = CPU_GDT_UDATA | 3;

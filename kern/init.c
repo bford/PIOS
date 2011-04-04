@@ -25,10 +25,12 @@
 #include <kern/mp.h>
 #include <kern/proc.h>
 #include <kern/file.h>
+#include <kern/net.h>
 
 #include <dev/pic.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
+#include <dev/pci.h>
 
 
 // User-mode stack for user(), below, to run on.
@@ -36,7 +38,7 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 
 // Lab 3: ELF executable containing root process, linked into the kernel
 #ifndef ROOTEXE_START
-#define ROOTEXE_START _binary_obj_user_testfs_start
+#define ROOTEXE_START _binary_obj_user_sh_start
 #endif
 extern char ROOTEXE_START[];
 
@@ -85,6 +87,8 @@ init(void)
 
 	// Initialize the I/O system.
 	file_init();		// Create root directory and console I/O files
+	pci_init();		// Initialize the PCI bus and network card
+	net_init();		
 
 	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
 	//cons_intenable();	// Let the console start producing interrupts

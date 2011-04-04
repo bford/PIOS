@@ -46,7 +46,8 @@
 
 // Register conventions on GET/PUT system call entry:
 //	EAX:	System call command/flags (SYS_*)
-//	EDX:	bits 7-0: Child process number to get/put
+//	EDX:	bits 15-8: Node number to migrate to, 0 for current
+//		bits 7-0: Child process number on above node to get/put
 //	EBX:	Get/put CPU state pointer for SYS_REGS and/or SYS_FPU)
 //	ECX:	Get/put memory region size
 //	ESI:	Get/put local memory region start
